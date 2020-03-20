@@ -2,6 +2,15 @@
 
 require 'twitter'
 
+def find_file(input_dir, output_dir)
+    output_file = Dir.entries(output_dir).filter {|e| e =~ /-wnaf-/}.sort.last
+    line = IO.readlines(File.join(output_dir, output_file))[2]
+    num = line.match(/#(\d+):/).captures[0].to_i
+    num += 1
+    entries = Dir.entries(input_dir).filter {|e| e =~ /^wnaf-/}
+    entries.filter {|e| IO.read(File.join(input_dir, e)) =~ /##{num}:/}.first
+end
+
 def fmt(input_file, input_dir, output_dir)
     input = File.new(File.join(input_dir, input_file))
     output_name = "#{Time.now.strftime('%Y-%m-%d')}-#{input_file}.md"
@@ -36,11 +45,11 @@ twitter_config = {
     access_token_secret: 'CHANGE_IT'
 }
 
-abort 'Arg: input_file_without_path' if ARGV.size != 1
-
-fmt ARGV[0], input_dir, output_dir
-upload ARGV[0], output_dir
+input_file = find_file input_dir, output_dir
+abort 'No file to upload' unless input_file
+fmt input_file, input_dir, output_dir
+upload input_file, output_dir
 puts 'Uploaded, now sleeping for 15 minutes...'
 sleep 15 * 60
-tweet ARGV[0], input_dir, twitter_config
+tweet input_file, input_dir, twitter_config
 puts 'Done!'
